@@ -27,13 +27,13 @@ import java.util.Properties;
  * @author Joeri de Ruiter (joeri@cs.ru.nl)
  */
 public class LearningConfig {
-	static int TYPE_SMARTCARD = 1;
+	static int TYPE_SAE = 1;
 	static int TYPE_SOCKET = 2;
 	static int TYPE_TLS = 3;
 	
 	protected Properties properties;
 	
-	int type = TYPE_SMARTCARD;
+	int type = TYPE_SAE;
 	
 	String output_dir = "output";
 	
@@ -72,12 +72,8 @@ public class LearningConfig {
 			output_dir = properties.getProperty("output_dir");
 		
 		if(properties.getProperty("type") != null) {
-			if(properties.getProperty("type").equalsIgnoreCase("smartcard"))
-				type = TYPE_SMARTCARD;
-			else if(properties.getProperty("type").equalsIgnoreCase("socket"))
-				type = TYPE_SOCKET;
-			else if(properties.getProperty("type").equalsIgnoreCase("tls"))
-				type = TYPE_TLS;
+			if(properties.getProperty("type").equalsIgnoreCase("sae"))
+				type = TYPE_SAE;
 		}
 		
 		if(properties.getProperty("learning_algorithm").equalsIgnoreCase("lstar") || properties.getProperty("learning_algorithm").equalsIgnoreCase("dhc") || properties.getProperty("learning_algorithm").equalsIgnoreCase("kv") || properties.getProperty("learning_algorithm").equalsIgnoreCase("ttt") || properties.getProperty("learning_algorithm").equalsIgnoreCase("mp") || properties.getProperty("learning_algorithm").equalsIgnoreCase("rs"))

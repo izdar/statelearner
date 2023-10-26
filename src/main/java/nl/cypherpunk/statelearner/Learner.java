@@ -56,12 +56,9 @@ import net.automatalib.words.Word;
 import net.automatalib.words.impl.SimpleAlphabet;
 import nl.cypherpunk.statelearner.LogOracle.MealyLogOracle;
 import nl.cypherpunk.statelearner.ModifiedWMethodEQOracle.MealyModifiedWMethodEQOracle;
-import nl.cypherpunk.statelearner.smartcard.SCConfig;
-import nl.cypherpunk.statelearner.smartcard.SCSUL;
-import nl.cypherpunk.statelearner.socket.SocketConfig;
-import nl.cypherpunk.statelearner.socket.SocketSUL;
-import nl.cypherpunk.statelearner.tls.TLSConfig;
-import nl.cypherpunk.statelearner.tls.TLSSUL;
+import nl.cypherpunk.statelearner.sae.SAEConfig;
+import nl.cypherpunk.statelearner.sae.SAESUL;
+
 
 /**
  * @author Joeri de Ruiter (joeri@cs.ru.nl)
@@ -91,6 +88,7 @@ public class Learner {
 		// Create output directory if it doesn't exist
 		Path path = Paths.get(config.output_dir);
 		if(Files.notExists(path)) {
+			System.out.println("here");
 			Files.createDirectories(path);
 		}
 		
@@ -99,30 +97,16 @@ public class Learner {
 		LearnLogger log = LearnLogger.getLogger(Learner.class.getSimpleName());
 
 		// Check the type of learning we want to do and create corresponding configuration and SUL
-		if(config.type == LearningConfig.TYPE_SMARTCARD) {
-			log.log(Level.INFO, "Using smartcard SUL");	
+		if(config.type == LearningConfig.TYPE_SAE) {
+			log.log(Level.INFO, "Using SAE SUL");
 			
-			// Create the smartcard SUL
-			sul = new SCSUL(new SCConfig(config));
-			alphabet = ((SCSUL)sul).getAlphabet();			
-		}
-		else if(config.type == LearningConfig.TYPE_SOCKET) {
-			log.log(Level.INFO, "Using socket SUL");
-			
-			// Create the socket SUL
-			SocketConfig socketConfig = new SocketConfig(config);
-			sul = new SocketSUL(socketConfig);
+			// Create the SAE SUL
+			SAEConfig socketConfig = new SAEConfig(config);
+			sul = new SAESUL(socketConfig);
 			combine_query = socketConfig.getCombineQuery();
-			alphabet = ((SocketSUL)sul).getAlphabet();			
+			alphabet = ((SAESUL)sul).getAlphabet();
 		}
-		else if(config.type == LearningConfig.TYPE_TLS) {
-			log.log(Level.INFO, "Using TLS SUL");
-			
-			// Create the TLS SUL
-			sul = new TLSSUL(new TLSConfig(config));
-			alphabet = ((TLSSUL)sul).getAlphabet();			
-		}
-		
+
 		loadLearningAlgorithm(config.learning_algorithm, alphabet, sul);
 		loadEquivalenceAlgorithm(config.eqtest, alphabet, sul);
 	}
@@ -311,7 +295,7 @@ public class Learner {
 		//TODO Check if dot is available
 		
 		// Convert .dot to .pdf
-		Runtime.getRuntime().exec("dot -Tpdf -O " + filename);
+//		Runtime.getRuntime().exec("dot -Tpdf -O " + filename);
 	}
 	
 	public void configureLogging(String output_dir) throws SecurityException, IOException {
