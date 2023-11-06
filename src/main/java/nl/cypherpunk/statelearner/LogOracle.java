@@ -15,7 +15,8 @@
  */
 
 package nl.cypherpunk.statelearner;
-
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Collection;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -38,10 +39,13 @@ public class LogOracle<I, D> implements MealyMembershipOracle<I,D> {
 	
 	LearnLogger logger;
 	StateLearnerSUL<I, D> sul;
+
+	private final Map<String, Word<D>> queryCache;
 	boolean combine_query = false;
    
     public LogOracle(StateLearnerSUL<I, D> sul, LearnLogger logger, boolean combine_query) {
         this.sul = sul;
+		this.queryCache = new HashMap<>();
         this.logger = logger;
         this.combine_query = combine_query;
     }
@@ -73,36 +77,69 @@ public class LogOracle<I, D> implements MealyMembershipOracle<I,D> {
     }
 
 	public Word<D> answerQuerySteps(Word<I> prefix, Word<I> suffix) {
-		WordBuilder<D> wbPrefix = new WordBuilder<>(prefix.length());
 		WordBuilder<D> wbSuffix = new WordBuilder<>(suffix.length());
+		WordBuilder<D> wbPrefix = new WordBuilder<>(prefix.length());
 
-		this.sul.pre();
 		try {
-			// Prefix: Execute symbols, only log output
-			for(I sym : prefix) {
-				wbPrefix.add(this.sul.step(sym));
+			Map<Word<D>, Integer> responseCounts = new HashMap<>();
+			int reruns = 0;
+			int maxReruns = 3;
+			while (reruns < maxReruns) {
+				this.sul.pre();
+				wbPrefix.clear();
+				wbSuffix.clear();
+
+				for (I sym : prefix) {
+					wbPrefix.add(this.sul.step(sym));
+				}
+
+				for (I sym : suffix) {
+					D response = this.sul.step(sym);
+					wbSuffix.add(response);
+				}
+
+				Word<D> responseWord = wbPrefix.toWord().concat(wbSuffix.toWord());
+
+				int count = responseCounts.getOrDefault(responseWord, 0) + 1;
+				responseCounts.put(responseWord, count);
+
+				reruns++;
 			}
-			
-			// Suffix: Execute symbols, outputs constitute output word
-			for(I sym : suffix) {
-				wbSuffix.add(this.sul.step(sym));
+
+			Word<D> mostCommonResponse = null;
+			int mostCommonResponseCount = 0;
+
+			for (Map.Entry<Word<D>, Integer> entry : responseCounts.entrySet()) {
+				if (entry.getValue() > mostCommonResponseCount) {
+					mostCommonResponse = entry.getKey();
+					mostCommonResponseCount = entry.getValue();
+				}
 			}
-		
-	    	logger.logQuery("[" + prefix.toString() + " | " + suffix.toString() +  " / " + wbPrefix.toWord().toString() + " | " + wbSuffix.toWord().toString() + "]");
-		}
-		finally {
+			logger.logQuery("[" + prefix.toString() + " | " + suffix.toString() + " / " + wbPrefix.toWord().toString() + " | " + wbSuffix.toWord().toString() + "]");
+			return mostCommonResponse.subWord(prefix.length(), mostCommonResponse.length());
+		} finally {
 			sul.post();
 		}
+	}
 
-		return wbSuffix.toWord();
-    }
 
-    @Override
+
+
+
+	@Override
 	public Word<D> answerQuery(Word<I> prefix, Word<I> suffix) {
 		if(combine_query) {
 			return answerQueryCombined(prefix, suffix);
 		} else {
-			return answerQuerySteps(prefix, suffix);
+			String cacheKey = prefix.toString() + "|" + suffix.toString();
+			if (this.queryCache.containsKey(cacheKey)) {
+				// Return cached result if available
+				System.out.println("Found in cache: " + cacheKey + ": "+ this.queryCache.get(cacheKey));
+				return this.queryCache.get(cacheKey);
+			}
+			Word<D> result = answerQuerySteps(prefix, suffix);
+			this.queryCache.put(cacheKey, result);
+			return result;
 		}
     }
     
@@ -118,6 +155,7 @@ public class LogOracle<I, D> implements MealyMembershipOracle<I,D> {
     }
 
 	@Override
+
 	public void processQueries(Collection<? extends Query<I, Word<D>>> queries) {
 		for (Query<I,Word<D>> q : queries) {
 			Word<D> output = answerQuery(q.getPrefix(), q.getSuffix());

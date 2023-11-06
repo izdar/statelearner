@@ -15,7 +15,6 @@
  */
 
 package nl.cypherpunk.statelearner.sae;
-
 import de.learnlib.api.SUL;
 import de.learnlib.logging.LearnLogger;
 import net.automatalib.words.Word;
@@ -123,7 +122,7 @@ public class SAESUL implements StateLearnerSUL<String, String> {
 		try {
 			if (!config.combine_query) {
 				// Reset test service
-				System.out.println("Sending symbol: RESET");
+//				System.out.println("Sending symbol: RESET");
 				out.write("RESET\n");
 				out.flush();
 	//			in.readLine();
